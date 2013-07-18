@@ -123,15 +123,28 @@ int Stage(int& _hit, int& _totalhit,
 //	DrawFormatString(200,200,GetColor(255,255,255),"%d", KeyFrame);
 //}
 
-void ShowBackground(int KeyFrame, int SizeX, int SizeY, int r, int refresh){
+//void ShowBackground(int KeyFrame, int SizeX, int SizeY, int r, int refresh){
+//	double MidX = SizeX / 2;
+//	double MidY = SizeY / 2;
+//	double _Frame = (double) KeyFrame;
+//	double Rad = _Frame;
+//	double CenterX = Rad*cos(_Frame/refresh) + MidX - r/2;  // Background 200 * 200
+//	double CenterY = Rad*sin(_Frame/refresh) + MidY - r/2;
+//	DrawCircle(CenterX, CenterY, r, GetColor(255,255,255),1);
+//	DrawFormatString(200,200,GetColor(255,255,255),"%d", KeyFrame);
+//}
+
+void ShowBackground(int KeyFrame, int SizeX, int SizeY, int* r, int* refresh, int* repoRad, int count){
 	double MidX = SizeX / 2;
 	double MidY = SizeY / 2;
 	double _Frame = (double) KeyFrame;
-	double Rad = _Frame;
-	double CenterX = Rad*cos(_Frame/refresh) + MidX - r/2;  // Background 200 * 200
-	double CenterY = Rad*sin(_Frame/refresh) + MidY - r/2;
-	DrawCircle(CenterX, CenterY, r, GetColor(255,255,255),1);
-	DrawFormatString(200,200,GetColor(255,255,255),"%d", KeyFrame);
+	int i;
+	for (i=0; i<count; i++){
+		double Rad = _Frame/repoRad[i];
+		double CenterX = Rad*cos(_Frame/refresh[i]) + MidX - r[i]/2;  // Background 200 * 200
+		double CenterY = Rad*sin(_Frame/refresh[i]) + MidY - r[i]/2;
+		DrawCircle(CenterX, CenterY, r[i], GetColor(255,255,255),1);
+	}
 }
 
 int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
@@ -144,8 +157,8 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		200,							// max counts
 		2,								// word counts
 		100,							// xspread
-		1,								// dropspeed
-		0.1,							// minspeed
+		3,								// dropspeed
+		1,							// minspeed
 		20								// fontsize
 	};
 	SetOutApplicationLogValidFlag(FALSE); // Log.txt¶¬‚µ‚È‚¢‚æ‚¤‚É
@@ -182,9 +195,16 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 			int TotalHit = g.WORDCOUNTS;			// g.WORDCOUNTS: Stage“à³‰ð‰ñ”
 			// ”wŒi—p•Ï”
 			int Frame = 0;				// frameŒv”
-			int r = 5;
-			int refresh = 10;
-
+			int count = 10;
+			int* rArr = new int[count];
+			int* refreshArr= new int[count];
+			int* repoRadArr= new int[count];
+			int i;
+			for (i=0; i<count; i++) {
+				rArr[i] = GetRand(10);
+				refreshArr[i] = GetRand(10);
+				repoRadArr[i] = GetRand(10);
+			}
 
 			GetScreenState( &SizeX , &SizeY , &ColorBitDepth );
 
@@ -219,7 +239,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 					break;				// exit stage restart game
 				};
 				// ”wŒiˆ—
-				ShowBackground(Frame, SizeX, SizeY, r, refresh);
+				ShowBackground(Frame, SizeX, SizeY, rArr, refreshArr, repoRadArr, count);
 				// Debug
 				// DrawFormatString( 100, 200, GetColor(255,255,255), "TotalHit! %d", TotalHit) ;
 			}
