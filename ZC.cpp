@@ -34,7 +34,7 @@ void Inittargets( Targets* t, string* myArray, Game g){
 	{
 		t[i].word = myArray[GetRand(g.MAXCOUNTS)].c_str();  //ランダム取り出す、stringからconst TCHAR*変換
 		if (i == 0) 
-			t[i].x = i * GetRand(g.XSPREAD);
+			t[i].x = i * GetRand(g.XSPREAD) + 120;			// 120はDrawFrame中の100より大き
 		else 
 			t[i].x = t[i-1].xEnd  + GetRand(g.XSPREAD) ;  // <========= TODO!!!! use GetDrawStringWidth
 		t[i].xEnd = t[i].x + GetDrawStringWidth(t[i].word, strlen(t[i].word), FALSE);
@@ -68,6 +68,12 @@ void DrawHitEffect(int x, int y, int* GBuff){
 	}
 }
 
+void DrawFrame(int x, int y){
+	DrawBox(0, 0, x, y, GetColor(173,114,75), TRUE);	
+	DrawBox(50, 50, x-50, y-50, GetColor(0,0,0), TRUE);	
+	DrawBox(100, y-100, x-100, y-50, GetColor(26,5,0), TRUE); 
+}
+
 int Stage(int& _hit, int& _totalhit, 
 		  int _sizeX, int _sizeY, int _colorBitDepth, 
 		  char* _userInput, int& _inputHandle, 
@@ -83,8 +89,9 @@ int Stage(int& _hit, int& _totalhit,
 		}	
 		
 		SetActiveKeyInput( _inputHandle ) ;					// 作成したキー入力ハンドルをアクティブにする
-		DrawKeyInputModeString( _sizeX , _sizeY ) ;			// 入力モードを描画		
-		DrawKeyInputString( 0 , 0 , _inputHandle ) ;		// 入力途中の文字列を描画
+		DrawKeyInputModeString( _sizeX , _sizeY ) ;			// 入力モードを描画
+		DrawFrame(_sizeX, _sizeY);
+		DrawKeyInputString( 100 , _sizeY-100 , _inputHandle ) ;		// 入力途中の文字列を描画
 		GetKeyInputString( _userInput , _inputHandle ) ;
 		string str(_userInput);
 
@@ -157,7 +164,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		200,							// max counts
 		2,								// word counts
 		100,							// xspread
-		3,								// dropspeed
+		1,								// dropspeed
 		1,							// minspeed
 		20								// fontsize
 	};
@@ -189,7 +196,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 			int SizeX;					// 画面サイス
 			int SizeY;					// 画面サイス
 			int ColorBitDepth;			// 画面色
-			char UserInput[100];			// user input
+			char UserInput[100];		// user input
 			int InputHandle;			
 			int Hit = 0;				// 1: 1つ単語正解
 			int TotalHit = g.WORDCOUNTS;			// g.WORDCOUNTS: Stage内正解回数
