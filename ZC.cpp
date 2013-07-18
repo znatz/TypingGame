@@ -16,6 +16,8 @@ struct GAMEDATA {
 	int DROPSPEED   ;
 	double MINSPEED ; 
 	int FONTSIZE    ;
+	int SCORE		;
+	int MISS		;
 };
 
 typedef struct TARGETS Targets;
@@ -61,25 +63,45 @@ void ChangeCallback( void *Data )
 	// TODO :: add event handler to return to default windows size;
 }
 
-void DrawHitEffect(int x, int y, int* GBuff){
+void DrawHitEffect(int x, int y, int sizeX, int sizeY, int* GBuff, int Frame){
 	int i;
-	for (i = 0; i < 7; i++) {
-		DrawGraph(x, y, GBuff[i], TRUE);
+	double MidX = sizeX/2;
+	double MidY = sizeY/2;
+	//for (i = 0; i < 7; i++) {
+	//	DrawGraph(x, y, GBuff[i], TRUE);
+	//}
+	//for (MidX = sizeX/2; MidX == x; MidX = Mid
+	for (i = 0; i < y; i ++) {
+		//DrawCircle(x, y, i, GetColor(255,255,255), FALSE);
+		DrawLine(x, 0, x, i, GetColor(255, 255, 255), 10); 
 	}
 }
 
 void DrawFrame(int x, int y){
-	DrawBox(100, y-100, x-100, y-50, GetColor(26,5,0), TRUE);
-	DrawLine(0, 0, 0, y, GetColor(173,114,75), 100);
-	DrawLine(0, 0, x, 0, GetColor(173,114,75), 100);
-	DrawLine(0, y, x, y, GetColor(173,114,75), 100);
-	DrawLine(x, 0, x, y, GetColor(173,114,75), 100);
+	// 入力のところ
+	DrawBox(100, y-100, x-100, y-50, GetColor(56,38,25), TRUE);
+	// 口
+	int color = GetColor(110, 41, 7); 
+	DrawLine(0, 0, 0, y, color, 100);
+	DrawLine(0, 0, x, 0, color, 100);
+	DrawLine(0, y, x, y, color, 100);
+	DrawLine(x, 0, x, y, color, 100);
+}
+
+void DrawInfo(int x, int y, Game* g){
+	int tempFontSize = GetFontSize();
+	SetFontSize(15);
+	int color = GetColor(250, 250, 250);
+	DrawFormatString( 100, y-50, color, "F1でゲーム終了、F2でレベル再開") ; 
+	DrawFormatString( 100, y-25, color, "ミス：%d　　あたり：%d", g->MISS, g->SCORE) ; 
+	SetFontSize(tempFontSize);
 }
 
 int Stage(int& _hit, int& _totalhit, 
 		  int _sizeX, int _sizeY, int _colorBitDepth, 
 		  char* _userInput, int& _inputHandle, 
-		  Targets* _targets, Game g, int* GBuff){
+		  Targets* _targets, Game* g, 
+		  int* GBuff, int Frame){
 		
 		int i;
 		
@@ -91,35 +113,39 @@ int Stage(int& _hit, int& _totalhit,
 		}	
 		
 		SetActiveKeyInput( _inputHandle ) ;					// 作成したキー入力ハンドルをアクティブにする
-		DrawKeyInputModeString( _sizeX , _sizeY ) ;			// 入力モードを描画
-		//DrawFrame(_sizeX, _sizeY);
-		DrawKeyInputString( 100 , _sizeY-100 , _inputHandle ) ;		// 入力途中の文字列を描画
-		GetKeyInputString( _userInput , _inputHandle ) ;
-		string str(_userInput);
+		DrawKeyInputModeString( _sizeX , _sizeY ) ;			// 入力モードを描画準備
+
+		GetKeyInputString( _userInput , _inputHandle ) ;	// 入力取得
+		string str(_userInput);								// stringへ変換
 
 		// Hit判断
-		for (i=0; i<g.WORDCOUNTS; i++){
+		for (i=0; i<g->WORDCOUNTS; i++){
 			if (_totalhit == 0) break;
 			if (_targets[i].word == "") continue;
 			if ( str.compare(_targets[i].word) != 0) {
 				DrawFormatString( _targets[i].x, _targets[i].y, _targets[i].color, "%s", _targets[i].word) ; // 単語の間、全角空白をいれないこと
 				_targets[i].y += _targets[i].y_increment;
+				// g.MISS ++;
 			} else {	
 				// hit
-				DrawHitEffect(_targets[i].x, _targets[i].y, GBuff);
+				DrawHitEffect(_targets[i].x, _targets[i].y, _sizeX, _sizeY, GBuff, Frame);
 				_targets[i].word = "";
 				_hit ++;
+				g->SCORE ++;
 				if (_totalhit == 0) break;
 				_totalhit--;
 			}
 		}
-		DrawFormatString( 100, 300, GetColor(255,255,255), "_totalhit! %d", _totalhit) ; // debug
-		DrawFrame(_sizeX, _sizeY);
+
+		
+		DrawFrame(_sizeX, _sizeY);									// 窓の周りを描く
+		DrawInfo(_sizeX, _sizeY, g);						// 説明を描く
+		DxLib::DrawKeyInputString( 100 , _sizeY-100 , _inputHandle ) ;		// 入力途中の文字列を描画
 		return _totalhit;
 }
 
 
-
+// 回ってる円を書く関数
 void ShowBackground(int KeyFrame, int SizeX, int SizeY, int* r, int* refresh, int* repoRad, int count){
 	double MidX = SizeX / 2;
 	double MidY = SizeY / 2;
@@ -127,8 +153,8 @@ void ShowBackground(int KeyFrame, int SizeX, int SizeY, int* r, int* refresh, in
 	int i;
 	for (i=0; i<count; i++){
 		double Rad = _Frame/repoRad[i];
-		double CenterX = Rad*cos(_Frame/refresh[i]) + MidX - r[i]/2;  // Background 200 * 200
-		double CenterY = Rad*sin(_Frame/refresh[i]) + MidY - r[i]/2;
+		double CenterX = Rad*cos(_Frame/refresh[i]) * (i + 1) + MidX - r[i]/2;  // Background 200 * 200
+		double CenterY = Rad*sin(_Frame/refresh[i]) * (i + 1) + MidY - r[i]/2;
 		DrawCircle(CenterX, CenterY, r[i], GetColor(255,255,255),1);
 	}
 }
@@ -144,8 +170,10 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		2,								// word counts
 		100,							// xspread
 		1,								// dropspeed
-		1,							// minspeed
-		20								// fontsize
+		1,								// minspeed
+		20,								// fontsize
+		0,								// score
+		0								// missed
 	};
 	SetOutApplicationLogValidFlag(FALSE); // Log.txt生成しないように
 	SetWindowUserCloseEnableFlag( FALSE ) ;// メインウインドウの×ボタンを押した時にライブラリが自動的にウインドウを閉じるかどうかのフラグをセットする
@@ -160,8 +188,8 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		//Background = LoadGraph(g.PNGNAME, FALSE);
 
 	// 文字表示設定
-	ChangeFont( "ＭＳ 明朝" ) ;
-	SetFontSize(g.FONTSIZE);
+	DxLib::ChangeFont( "ＭＳ 明朝" ) ;
+	DxLib::SetFontSize(g.FONTSIZE);
 
 	// -----　ファイルから単語を読み取る
 	string* myArray = new string[g.MAXCOUNTS];  // myArrayのサイズはg.WORDCOUNTSより大きはず
@@ -228,12 +256,9 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 					break;
 				}
 				// Stageを描画
-				if (Stage(Hit, TotalHit, SizeX, SizeY, ColorBitDepth, UserInput, InputHandle, targets, g, GBuff) == 0) {
+				if (Stage(Hit, TotalHit, SizeX, SizeY, ColorBitDepth, UserInput, InputHandle, targets, &g, GBuff, Frame) == 0) {
 					break;				// exit stage restart game
 				};
-
-				// Debug
-				// DrawFormatString( 100, 200, GetColor(255,255,255), "TotalHit! %d", TotalHit) ;
 			}
 			if (restartgame == false) break;
 	}
