@@ -2,11 +2,14 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <math.h>
+
 using namespace std;
 
 typedef struct GAMEDATA Game;
 struct GAMEDATA {
 	string FILENAME ; 
+	const TCHAR* PNGNAME	;
 	int MAXCOUNTS   ; 
 	int WORDCOUNTS  ;
 	int XSPREAD	    ;
@@ -106,12 +109,38 @@ int Stage(int& _hit, int& _totalhit,
 }
 
 
+//void ShowBackground(int Background, int KeyFrame, int SizeX, int SizeY){
+//	double MidX = SizeX / 2;
+//	double MidY = SizeY / 2;
+//	double _Frame = (double) KeyFrame;
+//	double Rad = _Frame;
+//	double Left = Rad*cos(_Frame/10) + MidX - 10.0;  // Background 200 * 200
+//	double Top  = Rad*sin(_Frame/10) + MidY - 10.0;
+//	double Right = Left + 10.0;
+//	double Bottom = Top + 10.0;
+//	DrawExtendGraphF(Left, Top, Right, Bottom,   Background, TRUE);
+//	DrawPixel(Left, Top, GetColor(255,255,255));
+//	DrawFormatString(200,200,GetColor(255,255,255),"%d", KeyFrame);
+//}
+
+void ShowBackground(int KeyFrame, int SizeX, int SizeY, int r, int refresh){
+	double MidX = SizeX / 2;
+	double MidY = SizeY / 2;
+	double _Frame = (double) KeyFrame;
+	double Rad = _Frame;
+	double CenterX = Rad*cos(_Frame/refresh) + MidX - r/2;  // Background 200 * 200
+	double CenterY = Rad*sin(_Frame/refresh) + MidY - r/2;
+	DrawCircle(CenterX, CenterY, r, GetColor(255,255,255),1);
+	DrawFormatString(200,200,GetColor(255,255,255),"%d", KeyFrame);
+}
+
 int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 			LPSTR lpCmdLine, int nCmdShow )
 {
 	// -----　Window設定
 	Game g = {
 		"./文書/words.txt",				// filename
+		"./画像/光01.png",				// flare png
 		200,							// max counts
 		2,								// word counts
 		100,							// xspread
@@ -123,8 +152,13 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	SetWindowUserCloseEnableFlag( FALSE ) ;// メインウインドウの×ボタンを押した時にライブラリが自動的にウインドウを閉じるかどうかのフラグをセットする
 	SetUseASyncChangeWindowModeFunction( TRUE, ChangeCallback, NULL );										// 最大化ボタンを有効にする
 	ChangeWindowMode(TRUE), DxLib_Init(), SetGraphMode( 1024 , 600 , 32 ), SetDrawScreen( DX_SCREEN_BACK ); //ウィンドウモード変更と初期化と裏画面設定
+	SetDrawMode( DX_DRAWMODE_BILINEAR );
+	// 消滅Effect用画像をロードする
 	int GBuff[8];
-	LoadDivGraph("./画像/explosion.png", 8, 8, 1, 40, 40, GBuff);
+	LoadDivGraph("./画像/explosion.png", 8, 8, 1, 40, 40, GBuff);	
+	// 背景画像をロードする
+		//int Background;
+		//Background = LoadGraph(g.PNGNAME, FALSE);
 
 	// 文字表示設定
 	ChangeFont( "ＭＳ 明朝" ) ;
@@ -146,6 +180,11 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 			int InputHandle;			
 			int Hit = 0;				// 1: 1つ単語正解
 			int TotalHit = g.WORDCOUNTS;			// g.WORDCOUNTS: Stage内正解回数
+			// 背景用変数
+			int Frame = 0;				// frame計数
+			int r = 5;
+			int refresh = 10;
+
 
 			GetScreenState( &SizeX , &SizeY , &ColorBitDepth );
 
@@ -160,6 +199,9 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 			// 画面に描画
 			while( ScreenFlip()==0 && ProcessMessage()==0 && ClearDrawScreen()==0 ){
+
+				Frame ++;
+
 				// バテンボタンを押す時
 				if( GetWindowUserCloseFlag() == TRUE ){
 					DrawFormatString( SizeX/2 - g.FONTSIZE* 10 , SizeY/2 - g.FONTSIZE/2 , GetColor(255,255,255), "%s", "ゲームを終了します　何かキーを入力してください") ;
@@ -172,10 +214,14 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 					restartgame = false;  // exit game
 					break;
 				}
+				// Stageを描画
 				if (Stage(Hit, TotalHit, SizeX, SizeY, ColorBitDepth, UserInput, InputHandle, targets, g, GBuff) == 0) {
 					break;				// exit stage restart game
 				};
-				DrawFormatString( 100, 200, GetColor(255,255,255), "TotalHit! %d", TotalHit) ;
+				// 背景処理
+				ShowBackground(Frame, SizeX, SizeY, r, refresh);
+				// Debug
+				// DrawFormatString( 100, 200, GetColor(255,255,255), "TotalHit! %d", TotalHit) ;
 			}
 			if (restartgame == false) break;
 	}
