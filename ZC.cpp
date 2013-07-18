@@ -69,9 +69,11 @@ void DrawHitEffect(int x, int y, int* GBuff){
 }
 
 void DrawFrame(int x, int y){
-	DrawBox(0, 0, x, y, GetColor(173,114,75), TRUE);	
-	DrawBox(50, 50, x-50, y-50, GetColor(0,0,0), TRUE);	
-	DrawBox(100, y-100, x-100, y-50, GetColor(26,5,0), TRUE); 
+	DrawBox(100, y-100, x-100, y-50, GetColor(26,5,0), TRUE);
+	DrawLine(0, 0, 0, y, GetColor(173,114,75), 100);
+	DrawLine(0, 0, x, 0, GetColor(173,114,75), 100);
+	DrawLine(0, y, x, y, GetColor(173,114,75), 100);
+	DrawLine(x, 0, x, y, GetColor(173,114,75), 100);
 }
 
 int Stage(int& _hit, int& _totalhit, 
@@ -90,7 +92,7 @@ int Stage(int& _hit, int& _totalhit,
 		
 		SetActiveKeyInput( _inputHandle ) ;					// 作成したキー入力ハンドルをアクティブにする
 		DrawKeyInputModeString( _sizeX , _sizeY ) ;			// 入力モードを描画
-		DrawFrame(_sizeX, _sizeY);
+		//DrawFrame(_sizeX, _sizeY);
 		DrawKeyInputString( 100 , _sizeY-100 , _inputHandle ) ;		// 入力途中の文字列を描画
 		GetKeyInputString( _userInput , _inputHandle ) ;
 		string str(_userInput);
@@ -112,34 +114,11 @@ int Stage(int& _hit, int& _totalhit,
 			}
 		}
 		DrawFormatString( 100, 300, GetColor(255,255,255), "_totalhit! %d", _totalhit) ; // debug
+		DrawFrame(_sizeX, _sizeY);
 		return _totalhit;
 }
 
 
-//void ShowBackground(int Background, int KeyFrame, int SizeX, int SizeY){
-//	double MidX = SizeX / 2;
-//	double MidY = SizeY / 2;
-//	double _Frame = (double) KeyFrame;
-//	double Rad = _Frame;
-//	double Left = Rad*cos(_Frame/10) + MidX - 10.0;  // Background 200 * 200
-//	double Top  = Rad*sin(_Frame/10) + MidY - 10.0;
-//	double Right = Left + 10.0;
-//	double Bottom = Top + 10.0;
-//	DrawExtendGraphF(Left, Top, Right, Bottom,   Background, TRUE);
-//	DrawPixel(Left, Top, GetColor(255,255,255));
-//	DrawFormatString(200,200,GetColor(255,255,255),"%d", KeyFrame);
-//}
-
-//void ShowBackground(int KeyFrame, int SizeX, int SizeY, int r, int refresh){
-//	double MidX = SizeX / 2;
-//	double MidY = SizeY / 2;
-//	double _Frame = (double) KeyFrame;
-//	double Rad = _Frame;
-//	double CenterX = Rad*cos(_Frame/refresh) + MidX - r/2;  // Background 200 * 200
-//	double CenterY = Rad*sin(_Frame/refresh) + MidY - r/2;
-//	DrawCircle(CenterX, CenterY, r, GetColor(255,255,255),1);
-//	DrawFormatString(200,200,GetColor(255,255,255),"%d", KeyFrame);
-//}
 
 void ShowBackground(int KeyFrame, int SizeX, int SizeY, int* r, int* refresh, int* repoRad, int count){
 	double MidX = SizeX / 2;
@@ -227,7 +206,9 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 			// 画面に描画
 			while( ScreenFlip()==0 && ProcessMessage()==0 && ClearDrawScreen()==0 ){
 
+				// 背景処理
 				Frame ++;
+				ShowBackground(Frame, SizeX, SizeY, rArr, refreshArr, repoRadArr, count);
 
 				// バテンボタンを押す時
 				if( GetWindowUserCloseFlag() == TRUE ){
@@ -241,12 +222,16 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 					restartgame = false;  // exit game
 					break;
 				}
+				// F2でレベル再開
+				if( CheckHitKey(KEY_INPUT_F2) == 1 ){
+					g.WORDCOUNTS --;
+					break;
+				}
 				// Stageを描画
 				if (Stage(Hit, TotalHit, SizeX, SizeY, ColorBitDepth, UserInput, InputHandle, targets, g, GBuff) == 0) {
 					break;				// exit stage restart game
 				};
-				// 背景処理
-				ShowBackground(Frame, SizeX, SizeY, rArr, refreshArr, repoRadArr, count);
+
 				// Debug
 				// DrawFormatString( 100, 200, GetColor(255,255,255), "TotalHit! %d", TotalHit) ;
 			}
