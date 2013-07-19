@@ -1,34 +1,5 @@
-#include "DxLib.h"
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <math.h>
+#include "typing_game.h"
 
-using namespace std;
-
-typedef struct GAMEDATA Game;
-struct GAMEDATA {
-	string FILENAME ; 
-	const TCHAR* PNGNAME	;
-	int MAXCOUNTS   ; 
-	int WORDCOUNTS  ;
-	int XSPREAD	    ;
-	int DROPSPEED   ;
-	double MINSPEED ; 
-	int FONTSIZE    ;
-	int SCORE		;
-	int MISS		;
-};
-
-typedef struct TARGETS Targets;
-struct TARGETS {
-	int x;
-	int xEnd;
-	int y;
-	int y_increment;
-	int color;
-	const TCHAR* word;
-};
 
 // Target初期化、画面中の配置
 void Inittargets( Targets* t, string* myArray, Game g){
@@ -63,52 +34,18 @@ void ChangeCallback( void *Data )
 	// TODO :: add event handler to return to default windows size;
 }
 
-void DrawHitEffect(int x, int y, int sizeX, int sizeY, int* GBuff, int Frame){
-	int i;
-	double MidX = sizeX/2;
-	double MidY = sizeY/2;
-	//for (i = 0; i < 7; i++) {
-	//	DrawGraph(x, y, GBuff[i], TRUE);
-	//}
-	//for (MidX = sizeX/2; MidX == x; MidX = Mid
-	for (i = 0; i < y; i ++) {
-		//DrawCircle(x, y, i, GetColor(255,255,255), FALSE);
-		DrawLine(x, 0, x, i, GetColor(255, 255, 255), 10); 
-	}
-}
-
-void DrawFrame(int x, int y){
-	// 入力のところ
-	DrawBox(100, y-100, x-100, y-50, GetColor(56,38,25), TRUE);
-	// 口
-	int color = GetColor(110, 41, 7); 
-	DrawLine(0, 0, 0, y, color, 100);
-	DrawLine(0, 0, x, 0, color, 100);
-	DrawLine(0, y, x, y, color, 100);
-	DrawLine(x, 0, x, y, color, 100);
-}
-
-void DrawInfo(int x, int y, Game* g){
-	int tempFontSize = GetFontSize();
-	SetFontSize(15);
-	int color = GetColor(250, 250, 250);
-	DrawFormatString( 100, y-50, color, "F1でゲーム終了、F2でレベル再開") ; 
-	DrawFormatString( 100, y-25, color, "ミス：%d　　あたり：%d", g->MISS, g->SCORE) ; 
-	SetFontSize(tempFontSize);
-}
-
 int Stage(int& _hit, int& _totalhit, 
 		  int _sizeX, int _sizeY, int _colorBitDepth, 
 		  char* _userInput, int& _inputHandle, 
 		  Targets* _targets, Game* g, 
-		  int* GBuff, int Frame){
+		  /*int* GBuff, */ /*int GBuff,*/ int Frame){
 		
 		int i;
 		
 		// Hitしたら、入力領域クリア、Hitリセット
 		if (_hit != 0) { 
 			_inputHandle = MakeKeyInput( 50 , FALSE , FALSE , FALSE ) ; 
-			DrawFormatString( 100, 100, GetColor(255,255,255), "Hit! %d", _hit) ; // debug
+			// DrawFormatString( 100, 100, GetColor(255,255,255), "Hit! %d", _hit) ; // debug
 			_hit = 0; 
 		}	
 		
@@ -128,7 +65,7 @@ int Stage(int& _hit, int& _totalhit,
 				// g.MISS ++;
 			} else {	
 				// hit
-				DrawHitEffect(_targets[i].x, _targets[i].y, _sizeX, _sizeY, GBuff, Frame);
+				PostMessage(GetMainWindowHandle(), WM_TARGET_HIT, _targets[i].x, _targets[i].y);
 				_targets[i].word = "";
 				_hit ++;
 				g->SCORE ++;
@@ -145,27 +82,28 @@ int Stage(int& _hit, int& _totalhit,
 }
 
 
-// 回ってる円を書く関数
-void ShowBackground(int KeyFrame, int SizeX, int SizeY, int* r, int* refresh, int* repoRad, int count){
-	double MidX = SizeX / 2;
-	double MidY = SizeY / 2;
-	double _Frame = (double) KeyFrame;
-	int i;
-	for (i=0; i<count; i++){
-		double Rad = _Frame/repoRad[i];
-		double CenterX = Rad*cos(_Frame/refresh[i]) * (i + 1) + MidX - r[i]/2;  // Background 200 * 200
-		double CenterY = Rad*sin(_Frame/refresh[i]) * (i + 1) + MidY - r[i]/2;
-		DrawCircle(CenterX, CenterY, r[i], GetColor(255,255,255),1);
+LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	switch (uMsg)	{
+		case WM_TARGET_HIT:
+			break;
+		//case WM_DRAW_BACKGROUND:
+		//	ShowBackground((Backgroud_M*) wParam);
+		//	break;
 	}
+	return 0;
 }
+
+
 
 int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 			LPSTR lpCmdLine, int nCmdShow )
 {
 	// -----　Window設定
+#pragma region initialize_game_data
 	Game g = {
 		"./文書/words.txt",				// filename
-		"./画像/光01.png",				// flare png
+		"./画像/bomb.png",				// flare png
 		200,							// max counts
 		2,								// word counts
 		100,							// xspread
@@ -175,17 +113,18 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		0,								// score
 		0								// missed
 	};
-	SetOutApplicationLogValidFlag(FALSE); // Log.txt生成しないように
-	SetWindowUserCloseEnableFlag( FALSE ) ;// メインウインドウの×ボタンを押した時にライブラリが自動的にウインドウを閉じるかどうかのフラグをセットする
+#pragma endregion
+
+	SetHookWinProc(WindowProc);		// Hook Message
+
+	SetOutApplicationLogValidFlag(FALSE);	// Log.txt生成しないように
+	SetWindowUserCloseEnableFlag( FALSE ) ;	// メインウインドウの×ボタンを押した時にライブラリが自動的にウインドウを閉じるかどうかのフラグをセットする
 	SetUseASyncChangeWindowModeFunction( TRUE, ChangeCallback, NULL );										// 最大化ボタンを有効にする
 	ChangeWindowMode(TRUE), DxLib_Init(), SetGraphMode( 1024 , 600 , 32 ), SetDrawScreen( DX_SCREEN_BACK ); //ウィンドウモード変更と初期化と裏画面設定
-	SetDrawMode( DX_DRAWMODE_BILINEAR );
-	// 消滅Effect用画像をロードする
-	int GBuff[8];
-	LoadDivGraph("./画像/explosion.png", 8, 8, 1, 40, 40, GBuff);	
-	// 背景画像をロードする
-		//int Background;
-		//Background = LoadGraph(g.PNGNAME, FALSE);
+	SetDrawMode( DX_DRAWMODE_BILINEAR );	// DrawGraphF系関数つかうため
+	
+		//int GBuff;
+		//GBuff = DxLib::LoadGraph(g.PNGNAME, 0);
 
 	// 文字表示設定
 	DxLib::ChangeFont( "ＭＳ 明朝" ) ;
@@ -200,27 +139,15 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	while (true) {
 			// 変数初期化
 			g.WORDCOUNTS ++;			// ゲームレベル調整、レベルアップした後の処理追加し、レベルデーターを作成してください
-			int SizeX;					// 画面サイス
-			int SizeY;					// 画面サイス
-			int ColorBitDepth;			// 画面色
+
 			char UserInput[100];		// user input
 			int InputHandle;			
 			int Hit = 0;				// 1: 1つ単語正解
 			int TotalHit = g.WORDCOUNTS;			// g.WORDCOUNTS: Stage内正解回数
 			// 背景用変数
-			int Frame = 0;				// frame計数
 			int count = 10;
-			int* rArr = new int[count];
-			int* refreshArr= new int[count];
-			int* repoRadArr= new int[count];
-			int i;
-			for (i=0; i<count; i++) {
-				rArr[i] = GetRand(10);
-				refreshArr[i] = GetRand(10);
-				repoRadArr[i] = GetRand(10);
-			}
-
-			GetScreenState( &SizeX , &SizeY , &ColorBitDepth );
+			Backgroud_M *background = (Backgroud_M*) malloc(sizeof(Backgroud_M) * count);
+			InitBackground(background, count);
 
 			// 落ちる単語を選ぶ
 			Targets *targets = (Targets*) malloc(sizeof(Targets)*g.WORDCOUNTS);
@@ -235,12 +162,13 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 			while( ScreenFlip()==0 && ProcessMessage()==0 && ClearDrawScreen()==0 ){
 
 				// 背景処理
-				Frame ++;
-				ShowBackground(Frame, SizeX, SizeY, rArr, refreshArr, repoRadArr, count);
-
+				background->Frame ++;
+				ShowBackground(background);
+				// if (background->Frame % 100 == 1) PostMessage(GetMainWindowHandle(), WM_DRAW_BACKGROUND, (WPARAM)background, 0);
+				#pragma region message_handler
 				// バテンボタンを押す時
 				if( GetWindowUserCloseFlag() == TRUE ){
-					DrawFormatString( SizeX/2 - g.FONTSIZE* 10 , SizeY/2 - g.FONTSIZE/2 , GetColor(255,255,255), "%s", "ゲームを終了します　何かキーを入力してください") ;
+					DrawFormatString( background->SizeX/2 - g.FONTSIZE* 10 , background->SizeY/2 - g.FONTSIZE/2 , GetColor(255,255,255), "%s", "ゲームを終了します　何かキーを入力してください") ;
 					DrawString(100,100,"ゲームを終了します　何かキーを入力してください",GetColor(255,255,255), 0);
 					WaitKey();
 					return 0;
@@ -255,9 +183,11 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 					g.WORDCOUNTS --;
 					break;
 				}
+				#pragma endregion
+
 				// Stageを描画
-				if (Stage(Hit, TotalHit, SizeX, SizeY, ColorBitDepth, UserInput, InputHandle, targets, &g, GBuff, Frame) == 0) {
-					break;				// exit stage restart game
+				if (Stage(Hit, TotalHit, background->SizeX, background->SizeY, background->ColorBitDepth, UserInput, InputHandle, targets, &g, /*GBuff,*/ background->Frame) == 0) {
+					break;				// すべてのtargetsをクリア（０になったら）、restart
 				};
 			}
 			if (restartgame == false) break;
