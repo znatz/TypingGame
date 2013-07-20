@@ -38,7 +38,7 @@ int Stage(int& _hit, int& _totalhit,
 		  int _sizeX, int _sizeY, int _colorBitDepth, 
 		  char* _userInput, int& _inputHandle, 
 		  Targets* _targets, Game* g, 
-		  /*int* GBuff, */ /*int GBuff,*/ int Frame){
+		  /*int* GBuff, */ /*int GBuff,*/ int Frame, Hit_t* h){
 		
 		int i;
 		
@@ -55,7 +55,7 @@ int Stage(int& _hit, int& _totalhit,
 		GetKeyInputString( _userInput , _inputHandle ) ;	// 入力取得
 		string str(_userInput);								// stringへ変換
 
-		// Hit判断
+		// 各単語を描画、Hit判断
 		for (i=0; i<g->WORDCOUNTS; i++){
 			if (_totalhit == 0) break;
 			if (_targets[i].word == "") continue;
@@ -65,7 +65,11 @@ int Stage(int& _hit, int& _totalhit,
 				// g.MISS ++;
 			} else {	
 				// hit
-				PostMessage(GetMainWindowHandle(), WM_TARGET_HIT, _targets[i].x, _targets[i].y);
+				h->hit = true;
+				h->p.x = _targets[i].x;
+				h->p.y = _targets[i].y;
+				h->frame = Frame;
+				PostMessage(GetMainWindowHandle(), WM_TARGET_HIT, (WPARAM) h, 0);
 				_targets[i].word = "";
 				_hit ++;
 				g->SCORE ++;
@@ -82,14 +86,13 @@ int Stage(int& _hit, int& _totalhit,
 }
 
 
+
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)	{
 		case WM_TARGET_HIT:
+			((Hit_t*)wParam)->hit = true;		// hitしたら、global変数hのhitに記録する
 			break;
-		//case WM_DRAW_BACKGROUND:
-		//	ShowBackground((Backgroud_M*) wParam);
-		//	break;
 	}
 	return 0;
 }
@@ -153,7 +156,11 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 			Targets *targets = (Targets*) malloc(sizeof(Targets)*g.WORDCOUNTS);
 			Inittargets(targets, myArray, g);
 
- 
+			// Stageにパスし、もしhitしたら、Stageはpost message、メッセージ処理機構はhitをtrueにする、背景処理はそれによって描画する。
+			Hit_t *h = (Hit_t*) malloc(sizeof(Hit_t));
+			h->hit	 = false;
+			h->frame = 0;
+			 
 			// キー入力ハンドルを作る(キャンセルなし全角文字有り数値入力じゃなし)
 			InputHandle = MakeKeyInput( 50 , FALSE , FALSE , FALSE ) ;
 
@@ -164,7 +171,9 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 				// 背景処理
 				background->Frame ++;
 				ShowBackground(background);
-				// if (background->Frame % 100 == 1) PostMessage(GetMainWindowHandle(), WM_DRAW_BACKGROUND, (WPARAM)background, 0);
+				if (background->Frame - h->frame > 200) h->hit = false;					// 200 frameの間だけ描画 
+				if (h->hit ) DrawString(100, 100, "Fuck you hit me", GetColor(255,255,255),0);	//　hitの描画
+				
 				#pragma region message_handler
 				// バテンボタンを押す時
 				if( GetWindowUserCloseFlag() == TRUE ){
@@ -186,7 +195,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 				#pragma endregion
 
 				// Stageを描画
-				if (Stage(Hit, TotalHit, background->SizeX, background->SizeY, background->ColorBitDepth, UserInput, InputHandle, targets, &g, /*GBuff,*/ background->Frame) == 0) {
+				if (Stage(Hit, TotalHit, background->SizeX, background->SizeY, background->ColorBitDepth, UserInput, InputHandle, targets, &g, /*GBuff,*/ background->Frame, h) == 0) {
 					break;				// すべてのtargetsをクリア（０になったら）、restart
 				};
 			}

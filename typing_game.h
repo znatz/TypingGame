@@ -33,10 +33,11 @@ struct TARGETS {
 	const TCHAR* word;
 };
 
-typedef struct HIT Hit;
+typedef struct HIT Hit_t;
 struct HIT {
 	bool hit ;		// hit or not
 	POINT p;		// hitpoint
+	int frame;		// hit‚µ‚½Žž‚Ìframe
 };
 
 typedef struct BACKGROUND Backgroud_M;
